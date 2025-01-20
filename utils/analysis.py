@@ -4,7 +4,7 @@ from transformers import pipeline
 import os
 
 # Sostituisci 'YOUR_AUTH_TOKEN' con il token ottenuto da Hugging Face
-diarization_pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization", use_auth_token="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")
+diarization_pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization", use_auth_token="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")
 
 sentiment_pipeline = pipeline("sentiment-analysis")
 
