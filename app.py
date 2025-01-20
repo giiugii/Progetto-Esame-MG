@@ -1,61 +1,66 @@
-#Script principale
+# app.py
 
-from flask import Flask, request, jsonify
-import whisper
-from moviepy.video.io.VideoFileClip import VideoFileClip
+from flask import Flask, render_template, request, jsonify, send_file
 import os
-import srt
-from pyannote.audio import Pipeline
+import tempfile
+from utils.video_processor import process_video
+from utils.interface import create_gradio_interface
+import threading
 
 app = Flask(__name__)
 
-# Caricamento del modello Whisper
-model = whisper.load_model("base")
-
-# Caricamento del modello di diarizzazione
-diarization_pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization")
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    srt_content = ''
+    sentiment = ''
+    diarize_data = ''
+    if request.method == 'POST':
+        video_file = request.files['video']
+        if video_file.filename.lower().endswith(('.mp4', '.avi', '.mov')):
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+            video_file.save(temp_file.name)
+            try:
+                srt_content, sentiment, diarize_data = process_video(temp_file.name)
+            except Exception as e:
+                # Gestisci l'errore se il processamento fallisce
+                srt_content = 'Errore durante il processamento del video'
+                sentiment = 'Errore'
+                diarize_data = f'Errore durante il processamento: {str(e)}'
+            finally:
+                os.unlink(temp_file.name)  # Rimuovi il file temporaneo
+            
+    return render_template('index.html', srt=srt_content, sentiment=sentiment, diarize=diarize_data)
 
 @app.route('/upload', methods=['POST'])
 def upload_video():
     if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
+        return jsonify({'error': 'No file part in the request'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    if file:
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+        file.save(temp_file.name)
+        try:
+            srt_content, sentiment, diarize_data = process_video(temp_file.name)
+            # Creazione di un file SRT temporaneo
+            srt_path = tempfile.NamedTemporaryFile(delete=False, suffix='.srt').name
+            with open(srt_path, 'w') as f:
+                f.write(srt_content)
+            os.unlink(temp_file.name)  # Rimuovi il file video temporaneo
+            return jsonify({'srt_path': srt_path, 'diarization': diarize_data}), 200
+        except Exception as e:
+            os.unlink(temp_file.name) if os.path.exists(temp_file.name) else None
+            return jsonify({'error': str(e)}), 500
 
-    video_file = request.files['file']
-    file_path = os.path.join('uploads', video_file.filename)
-    video_file.save(file_path)
-
-    # Trascrizione con Whisper
-    result = model.transcribe(file_path)
-    transcription = result['text']
-
-    # Creazione del file .srt
-    subtitles = []
-    for segment in result['segments']:
-        start = segment['start']
-        end = segment['end']
-        text = segment['text']
-        subtitles.append(srt.Subtitle(index=len(subtitles)+1, start=srt.srt_timestamp_to_timedelta(start), end=srt.srt_timestamp_to_timedelta(end), content=text))
-
-    srt_path = file_path.replace('.mp4', '.srt')
-    with open(srt_path, 'w', encoding='utf-8') as f:
-        f.write(srt.compose(subtitles))
-
-    # Diarizzazione
-    diarization_result = diarization_pipeline({'uri': 'audio', 'audio': file_path})
-    diarization_segments = [
-        {
-            "speaker": turn.speaker,
-            "start": turn.start,
-            "end": turn.end
-        } for turn in diarization_result.itertracks(yield_label=True)
-    ]
-
-    return jsonify({
-        'message': 'File processed successfully',
-        'srt_path': srt_path,
-        'diarization': diarization_segments
-    })
+def run_gradio():
+    iface = create_gradio_interface()
+    iface.launch(share=True)
 
 if __name__ == '__main__':
-    os.makedirs('uploads', exist_ok=True)
-    app.run(debug=True)
+    # Avvia l'interfaccia di Gradio in un thread separato
+    gradio_thread = threading.Thread(target=run_gradio)
+    gradio_thread.start()
+    
+    # Flask app
+    app.run(debug=True, port=5000)

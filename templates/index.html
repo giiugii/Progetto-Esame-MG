@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <!-- Il resto del tuo head -->
+</head>
+<body>
+    <div class="container">
+        <h1>Video Subtitles and Analysis</h1>
+        <form action="/" method="post" enctype="multipart/form-data">
+            <input type="file" name="video" accept="video/*">
+            <input type="submit" value="Carica Video">
+        </form>
+        
+        <div class="section">
+            <h2>Sottotitoli (.srt)</h2>
+            <pre>{{ srt }}</pre>
+        </div>
+        
+        <div class="section">
+            <h2>Analisi Sentimentale</h2>
+            <p>{{ sentiment }}</p>
+        </div>
+        
+        <div class="section">
+            <h2>Diarizzazione</h2>
+            {% if diarize %}
+                {% if diarize.startswith('Errore') %}
+                    <p class="error">{{ diarize }}</p>
+                {% else %}
+                    <p>{{ diarize }}</p>
+                {% endif %}
+            {% else %}
+                <p>Nessuna diarizzazione disponibile</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
