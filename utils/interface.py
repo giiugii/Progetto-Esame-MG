@@ -1,33 +1,21 @@
-# utils/interface.py
-
 import gradio as gr
-import requests
+from utils.analysis import analyze_sentiment
+from utils.video_processor import extract_subtitles
 
-def process_video(video):
-    files = {'file': video}
-    response = requests.post('http://127.0.0.1:5000/upload', files=files)
-    if response.status_code == 200:
-        result = response.json()
-        # Leggiamo il file SRT
-        with open(result['srt_path'], 'r') as file:
-            srt_content = file.read()
-        # Pulizia del file temporaneo SRT
-        os.unlink(result['srt_path'])
-        return srt_content, result['diarization']
-    else:
-        return "Errore: " + response.json().get('error', 'Unknown error'), None
+def process_video(video_file):
+    subtitles = extract_subtitles(video_file)
+    sentiment_label, sentiment_score = analyze_sentiment(subtitles)
+    return subtitles, sentiment_label, sentiment_score
 
 def create_gradio_interface():
     iface = gr.Interface(
         fn=process_video,
-        inputs=gr.Video(label="Carica un video"),
-        outputs=[
-            gr.Textbox(label="Sottotitoli (.srt)"),
-            gr.Textbox(label="Diarizzazione (turni di parola)")
-        ],
-        title="Generatore di Sottotitoli e Diarizzazione",
-        description="Carica un video per generare sottotitoli (.srt) e ottenere la diarizzazione dei turni di parola.",
+        inputs=gr.Video(label="Carica Video"), 
+        outputs=[gr.Textbox(label="Sottotitoli"), gr.Textbox(label="Analisi Sentimentale"), gr.Textbox(label="Punteggio Sentimentale")],
+        title="Generatore di Sottotitoli",
+        description="Carica un video per generare sottotitoli e per avere l'analisi sentimentale.",
         theme="default",
-        live=False  # Impostato a False per evitare esecuzioni in tempo reale non necessarie
+        live=False
     )
     return iface
+
