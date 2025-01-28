@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request
 from utils.interface import create_gradio_interface
 from multiprocessing import Process
-import gradio
+import time
 
 app = Flask(__name__)
 
@@ -18,5 +18,6 @@ if __name__ == '__main__':
     # Avvia Gradio in un processo separato
     p = Process(target=run_gradio)
     p.start()
+    time.sleep(2)  # Attendi un po' per assicurarti che Gradio parta correttamente
     # Esegui il tuo Flask normalmente
     app.run(debug=True, port=5000)
