@@ -20,7 +20,7 @@ def process_video(audio_file): #ritorna tuple
             'Parlante': speaker, 
             'Frase': text, 
             'Sentimento': sentiment_label, 
-            'Punteggio': sentiment_score
+            'Punteggio di fiducia': sentiment_score
         })
 
     # Converti i risultati in un DataFrame
@@ -29,15 +29,36 @@ def process_video(audio_file): #ritorna tuple
     # Crea una versione testuale della trascrizione
     transcript_text = "\n\n".join([f"{row['Parlante']}: {row['Frase']}" for index, row in df.iterrows()])
 
-    # Creazione del grafico dettagliato
+    # Mappa del sentimento a numeri
+    sentiment_mapping = {
+    'Positivo': 1,
+    'Neutro': 0,
+    'Negativo': -1
+    }
+    
+    df['sentimento_numerico'] = df['Sentimento'].map(sentiment_mapping)
+
+    # Creazione del grafico 
     fig = px.scatter(df, 
                      x='Turno', 
-                     y='Punteggio', 
+                     y='sentimento_numerico', 
                      color='Parlante', 
-                     size='Punteggio', 
+                     size='Punteggio di fiducia', 
                      hover_data=['Frase'], 
-                     title='Analisi Sentimentale per Turno e Parlante',
-                     labels={'Punteggio': 'Punteggio Sentimentale', 'Turno': 'Turno di Parlato'})
+                     #text='Sentimento', 
+                     title='Grafico analisi sentimentale',
+                     labels={'sentimento_numerico': 'Sentimento', 'Turno': 'Turno di Parlato'},
+                     category_orders={'sentimento_numerico': [-1, 0, 1]})  # Imposta l'ordine delle categorie (Positivo, Neutro, Negativo)
+    
+    # Rimuovi la colonna temporanea dal DataFrame dopo averla usata per il grafico
+    df.drop(columns=['sentimento_numerico'], inplace=True)
+
+    fig.update_layout(
+    yaxis=dict(
+        tickmode='array',
+        tickvals=[-1, 0, 1],
+        ticktext=['Negativo', 'Neutro', 'Positivo'])
+    )
 
     # Salva il grafico come immagine temporanea
     with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
@@ -48,14 +69,14 @@ def process_video(audio_file): #ritorna tuple
     sentiment_totals = []
     for speaker in df['Parlante'].unique():
         speaker_data = df[df['Parlante'] == speaker]
-        avg_score = speaker_data['Punteggio'].mean()   # Media dei punteggi
+        avg_score = speaker_data['Punteggio di fiducia'].mean()   # Media dei punteggi
         num_phrases = len(speaker_data)            # Numero di frasi per speaker
         most_common_sentiment = speaker_data['Sentimento'].mode()[0]  # Sentiment più comune
         sentiment_totals.append({
             'Parlante': speaker,
             'Sentimento più comune': most_common_sentiment,
             'Numero di frasi': num_phrases,
-            'Media dei punteggi': f"{avg_score:.2f}"
+            'Media dei punteggi di fiducia': f"{avg_score:.2f}"
         })
 
     return transcript_text, df, pd.DataFrame(sentiment_totals), plot_path
@@ -71,17 +92,16 @@ def create_gradio_interface():
             gr.Image(label="Grafico analisi sentimentale")
         ],
         title="Analisi audio di un video",
-        description="Carica un video per generare la trascrizione dell'audio e l'analisi sentimentale per turni e per parlante.",
+        description="Carica un video per ricevere la trascrizione dell'audio e l'analisi sentimentale per turni e per parlante.",
         theme="default",
         live=False
     )
     with gr.Blocks() as iface:
         gr.Markdown("<h2 style='text-align: center;'><strong>Analisi audio di un video</strong></h2>")
-        gr.Markdown("Carica un video per generare la trascrizione dell'audio e l'analisi sentimentale per turni e per parlante.")
+        gr.Markdown("Carica un video per ricevere la trascrizione dell'audio e l'analisi sentimentale per turni e per parlante.")
         with gr.Row():
             with gr.Column(scale=6):
                 video_input = gr.Video(label="Carica Video", elem_id="video-box")
-                #submit_button = gr.Button("Submit")
             with gr.Column(scale=6):
                 transcript_output = gr.Textbox(label="Trascrizione", lines=10, elem_id="transcript-box")
         with gr.Row():
