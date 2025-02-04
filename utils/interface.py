@@ -1,12 +1,14 @@
 #importazioni
 import gradio as gr
-from utils.analysis import analyze_sentiment
+from utils.analysis import analyze_sentiment, load_emolex, analizza_emozioni
 from utils.video_processor import diarize_and_transcribe_audio
 import pandas as pd
 import plotly.express as px
 import plotly.io as pio
 import tempfile
 import requests
+
+emolex = load_emolex(r"C:\Users\maria\Downloads\Italian-NRC-EmoLex.txt")
 
 def process_video(audio_file): 
     with open(audio_file, 'rb') as f:
@@ -26,8 +28,12 @@ def process_video(audio_file):
 
     #analisi sentimentale per ogni segmento
     sentiment_results = []
+    emotion_results = []  # Lista per i risultati delle emozioni
     for segment in subtitles:
         speaker, text = segment[1], segment[2]
+
+        emotion_scores = analizza_emozioni(text, emolex)
+
         sentiment_label, sentiment_score = analyze_sentiment(text)
         sentiment_results.append({
             'Turno': f"Turno {len(sentiment_results) + 1}",
@@ -36,7 +42,23 @@ def process_video(audio_file):
             'Sentimento': sentiment_label, 
             'Punteggio di fiducia': sentiment_score
         })
+        emotion_results.append({
+            'Turno': f"Turno {len(emotion_results) + 1}",
+            'Parlante': speaker,
+            'Frase': text,
+            'Anticipazione': emotion_scores['Anticipation'],
+            'Rabbia': emotion_scores['Anger'],
+            'Paura': emotion_scores['Fear'],
+            'Gioia': emotion_scores['Joy'],
+            'Tristezza': emotion_scores['Sadness'],
+            'Sorpresa': emotion_scores['Surprise'],
+            'Disgusto': emotion_scores['Disgust'],
+            'Fiducia': emotion_scores['Trust'],
+            'Negativo': emotion_scores['Negative'],
+            'Positivo': emotion_scores['Positive']
+        })
     df = pd.DataFrame(sentiment_results)
+    emotion_df = pd.DataFrame(emotion_results)
     
     #testo della trascrizione 
     transcript_text = "\n\n".join([f"{row['Parlante']}: {row['Frase']}" for index, row in df.iterrows()])
@@ -90,7 +112,7 @@ def process_video(audio_file):
     if response.status_code == 200:
         result_data = response.json() 
     
-    return transcript_text, df, pd.DataFrame(sentiment_totals), plot_path
+    return transcript_text, df, emotion_df, pd.DataFrame(sentiment_totals), plot_path
 
 #funzione gradio
 def create_gradio_interface():
@@ -100,6 +122,7 @@ def create_gradio_interface():
         outputs=[
             gr.Textbox(label="Trascrizione"),
             gr.Dataframe(label="Tabella analisi sentimentale per turni", datatype=['str', 'str', 'str', 'number']),
+            gr.Dataframe(label="Tabella analisi emozionale per turni", datatype=['str', 'str', 'str', 'number', 'number', 'number', 'number', 'number', 'number', 'number']),
             gr.Dataframe(label="Tabella analisi sentimentale per parlante"),
             gr.Image(label="Grafico analisi sentimentale")
         ],
@@ -126,11 +149,12 @@ def create_gradio_interface():
             with gr.Column(scale=3):
                 pass
         table_output = gr.Dataframe(label="Tabella analisi sentimentale per turni", datatype=['str', 'str', 'str', 'number'])
+        table_emotion= gr.Dataframe(label="Tabella analisi emozionale per turni", datatype=['str', 'str', 'str', 'number', 'number', 'number', 'number', 'number', 'number', 'number'] )
         total_sentiment_output = gr.DataFrame(label="Tabella analisi sentimentale per parlante")
         plot_output = gr.Image(label="Grafico analisi sentimentale")
-        submit_button.click(process_video, inputs=[video_input], outputs=[transcript_output, table_output, total_sentiment_output, plot_output])
+        submit_button.click(process_video, inputs=[video_input], outputs=[transcript_output, table_output, table_emotion, total_sentiment_output, plot_output])
         def clear_outputs():
-            return None, "", None, None, None
-        clear_button.click(clear_outputs, inputs=None, outputs=[video_input,transcript_output, table_output, total_sentiment_output, plot_output])
+            return None, "", None, None, None, None
+        clear_button.click(clear_outputs, inputs=None, outputs=[video_input,transcript_output, table_output, table_emotion, total_sentiment_output, plot_output])
 
     return iface
