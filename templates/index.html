@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carica il tuo file</title>
+</head>
+<body>
+    <h1>Carica il tuo file</h1>
+
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+        <label for="file">Scegli un file (video o audio):</label>
+        <input type="file" name="file" id="file" accept="video/*,audio/*" required>
+        <br><br>
+        <button type="submit">Carica</button>
+    </form>
+
+    {% if file_path %}
+    <h3>File caricato con successo!</h3>
+    <p>Percorso del file: {{ file_path }}</p>
+    {% endif %}
+    
+    {% if error %}
+    <h3>Errore: {{ error }}</h3>
+    {% endif %}
+</body>
+</html>

@@ -1,20 +1,19 @@
+#importazione
 from transformers import pipeline, AutoModelForSequenceClassification, AutoTokenizer
 
-# Carica il modello e il tokenizer italiano
+#caricamento del modello e del tokenizer
 model_name="nlptown/bert-base-multilingual-uncased-sentiment"
 model = AutoModelForSequenceClassification.from_pretrained(model_name)
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-# Crea il pipeline per l'analisi sentimentale
 sentiment_analyzer = pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
 
 def analyze_sentiment(text):
-    # Usa il modello pre-addestrato per l'italiano
     sentiment = sentiment_analyzer(text)[0]
-    sentiment_label = sentiment['label']  # Positivo, negativo o neutro
-    sentiment_score = sentiment['score']  # Punteggio di fiducia nel risultato
+    sentiment_label = sentiment['label'] 
+    sentiment_score = sentiment['score']  
 
-    # Tradurre il numero di stelle in etichetta (positivo, neutro, negativo)
+    #traduzione dei risultati
     if sentiment_label in ['1 star', '2 stars']:
         sentiment_label = "Negativo"
     elif sentiment_label in ['3 stars']:
