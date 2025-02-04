@@ -7,8 +7,33 @@ import plotly.express as px
 import plotly.io as pio
 import tempfile
 import requests
+import plotly.graph_objects as go
 
-emolex = load_emolex(r"C:\Users\maria\Downloads\Italian-NRC-EmoLex.txt")
+emolex = load_emolex(r"/Users/giuliatonielli/Desktop/Progetto-Esame-MG/Italian-NRC-EmoLex.txt")
+
+def create_emotion_chart(emotion_df):
+    emotions = ['Anticipazione', 'Rabbia', 'Paura', 'Gioia', 'Tristezza', 'Sorpresa', 'Disgusto', 'Fiducia', 'Negativo', 'Positivo']
+    
+    fig = go.Figure()
+    for speaker in emotion_df['Parlante'].unique():
+        speaker_data = emotion_df[emotion_df['Parlante'] == speaker]
+        fig.add_trace(go.Bar(
+            x=emotions,
+            y=[speaker_data[emotion].mean() for emotion in emotions],
+            name=speaker
+        ))
+    
+    fig.update_layout(
+        barmode='group',
+        title='Analisi Emozionale per Parlante',
+        xaxis_title='Emozioni',
+        yaxis_title='Media dei punteggi',
+        legend_title='Parlante'
+    )
+    
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
+        pio.write_image(fig, tmpfile.name)
+        return tmpfile.name
 
 def process_video(audio_file): 
     with open(audio_file, 'rb') as f:
@@ -17,7 +42,7 @@ def process_video(audio_file):
             files={'file': f}
         )
     if response.status_code != 200:
-     return "Errore nel caricamento dell'audio"
+        return "Errore nel caricamento dell'audio"
     file_data = response.json()
     if 'filepath' in file_data:
         audio_file = file_data['filepath']  
@@ -26,15 +51,15 @@ def process_video(audio_file):
 
     subtitles = diarize_and_transcribe_audio(audio_file)
 
-    #analisi sentimentale per ogni segmento
     sentiment_results = []
-    emotion_results = []  # Lista per i risultati delle emozioni
+    emotion_results = []
+    
     for segment in subtitles:
         speaker, text = segment[1], segment[2]
 
         emotion_scores = analizza_emozioni(text, emolex)
-
         sentiment_label, sentiment_score = analyze_sentiment(text)
+        
         sentiment_results.append({
             'Turno': f"Turno {len(sentiment_results) + 1}",
             'Parlante': speaker, 
@@ -42,6 +67,7 @@ def process_video(audio_file):
             'Sentimento': sentiment_label, 
             'Punteggio di fiducia': sentiment_score
         })
+        
         emotion_results.append({
             'Turno': f"Turno {len(emotion_results) + 1}",
             'Parlante': speaker,
@@ -57,21 +83,24 @@ def process_video(audio_file):
             'Negativo': emotion_scores['Negative'],
             'Positivo': emotion_scores['Positive']
         })
+
     df = pd.DataFrame(sentiment_results)
     emotion_df = pd.DataFrame(emotion_results)
-    
-    #testo della trascrizione 
+
+    if not emotion_df.empty:
+        emotion_chart_path = create_emotion_chart(emotion_df)
+    else:
+        emotion_chart_path = None
+
     transcript_text = "\n\n".join([f"{row['Parlante']}: {row['Frase']}" for index, row in df.iterrows()])
 
-    #mappatura dei sentimenti
     sentiment_mapping = {
-    'Positivo': 1,
-    'Neutro': 0,
-    'Negativo': -1
+        'Positivo': 1,
+        'Neutro': 0,
+        'Negativo': -1
     }
     df['sentimento_numerico'] = df['Sentimento'].map(sentiment_mapping)
 
-    #creazione del grafico 
     fig = px.scatter(df, 
                      x='Turno', 
                      y='sentimento_numerico', 
@@ -83,16 +112,15 @@ def process_video(audio_file):
     
     df.drop(columns=['sentimento_numerico'], inplace=True)
     fig.update_layout(
-    yaxis=dict(
-        tickmode='array',
-        tickvals=[-1, 0, 1],
-        ticktext=['Negativo', 'Neutro', 'Positivo'])
+        yaxis=dict(
+            tickmode='array',
+            tickvals=[-1, 0, 1],
+            ticktext=['Negativo', 'Neutro', 'Positivo'])
     )
     with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
         pio.write_image(fig, tmpfile.name)
         plot_path = tmpfile.name
 
-    #calcolo dell'analisi sentimentale totale per ciascun parlante
     sentiment_totals = []
     for speaker in df['Parlante'].unique():
         speaker_data = df[df['Parlante'] == speaker]
@@ -109,28 +137,13 @@ def process_video(audio_file):
     response = requests.post("http://127.0.0.1:5000/save_results", json={
         'sentiment_results': df.to_dict(orient='records')
     })
-    if response.status_code == 200:
-        result_data = response.json() 
     
-    return transcript_text, df, emotion_df, pd.DataFrame(sentiment_totals), plot_path
+    return transcript_text, df, emotion_df, pd.DataFrame(sentiment_totals), plot_path, emotion_chart_path
+
+
 
 #funzione gradio
 def create_gradio_interface():
-    iface = gr.Interface(
-        fn=process_video,
-        inputs=gr.Video(label="Carica Video"), 
-        outputs=[
-            gr.Textbox(label="Trascrizione"),
-            gr.Dataframe(label="Tabella analisi sentimentale per turni", datatype=['str', 'str', 'str', 'number']),
-            gr.Dataframe(label="Tabella analisi emozionale per turni", datatype=['str', 'str', 'str', 'number', 'number', 'number', 'number', 'number', 'number', 'number']),
-            gr.Dataframe(label="Tabella analisi sentimentale per parlante"),
-            gr.Image(label="Grafico analisi sentimentale")
-        ],
-        title="Analisi audio di un video",
-        description="Carica un video per ricevere la trascrizione dell'audio e l'analisi sentimentale per turni e per parlante.",
-        theme="default",
-        live=False
-    )
     with gr.Blocks() as iface:
         gr.Markdown("<h2 style='text-align: center;'><strong>Analisi audio di un video</strong></h2>")
         gr.Markdown("Carica un video per ricevere la trascrizione dell'audio e l'analisi sentimentale per turni e per parlante.")
@@ -143,18 +156,18 @@ def create_gradio_interface():
             with gr.Column(scale=3):
                 clear_button = gr.Button("Cancella", elem_id="clear-btn")
             with gr.Column(scale=3):
-                submit_button= gr.Button("Invia", elem_id="submit-btn")
-            with gr.Column(scale=3):
-                pass
-            with gr.Column(scale=3):
-                pass
+                submit_button = gr.Button("Invia", elem_id="submit-btn")
+        
         table_output = gr.Dataframe(label="Tabella analisi sentimentale per turni", datatype=['str', 'str', 'str', 'number'])
-        table_emotion= gr.Dataframe(label="Tabella analisi emozionale per turni", datatype=['str', 'str', 'str', 'number', 'number', 'number', 'number', 'number', 'number', 'number'] )
-        total_sentiment_output = gr.DataFrame(label="Tabella analisi sentimentale per parlante")
+        table_emotion = gr.Dataframe(label="Tabella analisi emozionale per turni", datatype=['str', 'str', 'str', 'number', 'number', 'number', 'number', 'number', 'number', 'number'])
+        total_sentiment_output = gr.Dataframe(label="Tabella analisi sentimentale per parlante")
         plot_output = gr.Image(label="Grafico analisi sentimentale")
-        submit_button.click(process_video, inputs=[video_input], outputs=[transcript_output, table_output, table_emotion, total_sentiment_output, plot_output])
+        emotion_plot_output = gr.Image(label="Grafico analisi emozionale")
+
+        submit_button.click(process_video, inputs=[video_input], outputs=[transcript_output, table_output, table_emotion, total_sentiment_output, plot_output, emotion_plot_output])        
+        
         def clear_outputs():
-            return None, "", None, None, None, None
-        clear_button.click(clear_outputs, inputs=None, outputs=[video_input,transcript_output, table_output, table_emotion, total_sentiment_output, plot_output])
+            return None, "", None, None, None, None, None
+        clear_button.click(clear_outputs, inputs=None, outputs=[video_input, transcript_output, table_output, table_emotion, total_sentiment_output, plot_output, emotion_plot_output])
 
     return iface

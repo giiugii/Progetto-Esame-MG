@@ -39,9 +39,9 @@ def load_emolex(file_path):
 
 # Funzione di lemmatizzazione con Stanza (se non lo hai già integrato)
 def lemmatize_text(text):
-    nlp = stanza.Pipeline('it', processors='tokenize,lemma,pos')
+    nlp = stanza.Pipeline('it', processors='tokenize,lemma')
     doc = nlp(text)
-    lemmi = [word.lemma for word in doc.iter_words()]
+    lemmi = [word.lemma for sentence in doc.sentences for word in sentence.words]
     return lemmi
 
 # Funzione per analizzare le emozioni in un testo

@@ -1,12 +1,40 @@
 Turno,Parlante,Frase,Sentimento,Punteggio di fiducia
-Turno 1,SPEAKER_01, Ciao Roberto!,Positivo,0.6348320841789246
-Turno 2,SPEAKER_00," Ciao Marta, tutto bene?",Positivo,0.32017046213150024
-Turno 3,SPEAKER_01," No, sono qui delle nuove per l'escrizione al corso.",Negativo,0.3811624050140381
-Turno 4,SPEAKER_00, O un'uodo non più?,Negativo,0.36722952127456665
-Turno 5,SPEAKER_01," Che ben, no, grazie!",Positivo,0.4011503756046295
-Turno 6,SPEAKER_00," Prego, dai, scrivo io, dove abiti?",Negativo,0.4630357325077057
-Turno 7,SPEAKER_01, Abitatorino.,Positivo,0.2711617648601532
-Turno 8,SPEAKER_00, Dove? Qual è il tuo indirizzo?,Negativo,0.4593486189842224
-Turno 9,SPEAKER_01," Abito, invece, le manioli di 17.",Neutro,0.4061090052127838
-Turno 10,SPEAKER_00," Che bello, via delle maniolie.",Positivo,0.5457746386528015
-Turno 11,SPEAKER_00, E tu.,Positivo,0.4041830897331238
+Turno 1,SPEAKER_00, Ciao Roberto!,Positivo,0.6348320245742798
+Turno 2,SPEAKER_01," Ciao Marta, tutto bene?",Positivo,0.32017064094543457
+Turno 3,SPEAKER_00," No, sono qui delle nuove per l'escrizione al corso.",Negativo,0.3811625838279724
+Turno 4,SPEAKER_01, O un'uodo non più?,Negativo,0.36722949147224426
+Turno 5,SPEAKER_00," Che bello, grazie!",Positivo,0.7062089443206787
+Turno 6,SPEAKER_01," Prego, dai scrivo io, dove abiti?",Negativo,0.4303140640258789
+Turno 7,SPEAKER_00, Abitato Rino.,Neutro,0.24599120020866394
+Turno 8,SPEAKER_01, Dove? Qual è il tuo indirizzo?,Negativo,0.4593487083911896
+Turno 9,SPEAKER_00," Abito, invece, le manioli di 17.",Neutro,0.406109094619751
+Turno 10,SPEAKER_01," Che bello, via delle maniolie.",Positivo,0.5457746386528015
+Turno 11,SPEAKER_00," E tu non abiti, Aitorino, giusto?",Negativo,0.5389920473098755
+Turno 12,SPEAKER_01," Giusto, abito a Chieri.",Positivo,0.3756710886955261
+Turno 13,SPEAKER_01, In via Santa Clara 4.,Positivo,0.36338526010513306
+Turno 14,SPEAKER_01, Cosa iscrivo qui?,Negativo,0.4450291097164154
+Turno 15,SPEAKER_01," Ah sì, il numero di casa e qui il cellulare.",Negativo,0.27114078402519226
+Turno 16,SPEAKER_00, Ma ho soltanto il cellulare.,Neutro,0.34479251503944397
+Turno 17,SPEAKER_01," Anchino, non fa niente.",Negativo,0.6775617003440857
+Turno 18,SPEAKER_01, Qual è il tuo numero di cellulare?,Negativo,0.3839035928249359
+Turno 19,SPEAKER_00," Un momento, non lo so.",Negativo,0.3899241089820862
+Turno 20,SPEAKER_00, Il 338...,Negativo,0.3489200472831726
+Turno 21,SPEAKER_00," 6, 4, 4...",Neutro,0.25520387291908264
+Turno 22,SPEAKER_00," 3, 2, 5 e 6.",Positivo,0.3652506470680237
+Turno 23,SPEAKER_01," 338, 6, 4, 4, 3, 2, 5 e 6.",Positivo,0.43045270442962646
+Turno 24,SPEAKER_00, E qual è il tuo numero?,Negativo,0.33452364802360535
+Turno 25,SPEAKER_01," 3, 2, 0, 9, 9, 8, 7, 4, 4, 3.",Positivo,0.29779064655303955
+Turno 26,SPEAKER_00," Come scusa, vuoi ripetere per favore?",Negativo,0.3837392330169678
+Turno 27,SPEAKER_01, Certo.,Neutro,0.444646418094635
+Turno 28,SPEAKER_01," 3, 2, 0, 9, 9, 8, 7, 4, 4, 3.",Positivo,0.29779064655303955
+Turno 29,SPEAKER_01," E qui, l'imail.",Positivo,0.4483961760997772
+Turno 30,SPEAKER_01, Qual è il tuo indirizzo email?,Negativo,0.4481354355812073
+Turno 31,SPEAKER_00," Non uso l'imail, ma scriviamo Martanc, Chiocela, gmail.com.",Negativo,0.45514917373657227
+Turno 32,SPEAKER_01, Quali lingue parli?,Neutro,0.2452721893787384
+Turno 33,SPEAKER_00," Polacco, inglesa, francesa, italiano.",Neutro,0.23971188068389893
+Turno 34,SPEAKER_01," Che brava, da quanto studi l'italiano?",Negativo,0.2358826994895935
+Turno 35,SPEAKER_00, Da due anni.,Negativo,0.23488479852676392
+Turno 36,SPEAKER_00," E tu, quali lingue parli?",Neutro,0.2279864400625229
+Turno 37,SPEAKER_01," Io parlo spagnolo, inglese, italiano.",Negativo,0.25201767683029175
+Turno 38,SPEAKER_01," Bello, italiano non molto bene.",Neutro,0.5204629302024841
+Turno 39,SPEAKER_01, Studi l'italiano soltanto da un anno.,Negativo,0.3570677936077118
