@@ -1,39 +1,15 @@
 #importazioni
 import gradio as gr
-from utils.analysis import analyze_sentiment, load_emolex, analizza_emozioni
+from utils.analysis import analyze_sentiment, load_emolex, analyze_emotions_average
 from utils.video_processor import diarize_and_transcribe_audio
 import pandas as pd
 import plotly.express as px
 import plotly.io as pio
 import tempfile
 import requests
-import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 
-emolex = load_emolex(r"/Users/giuliatonielli/Desktop/Progetto-Esame-MG/Italian-NRC-EmoLex.txt")
-
-def create_emotion_chart(emotion_df):
-    emotions = ['Anticipazione', 'Rabbia', 'Paura', 'Gioia', 'Tristezza', 'Sorpresa', 'Disgusto', 'Fiducia', 'Negativo', 'Positivo']
-    
-    fig = go.Figure()
-    for speaker in emotion_df['Parlante'].unique():
-        speaker_data = emotion_df[emotion_df['Parlante'] == speaker]
-        fig.add_trace(go.Bar(
-            x=emotions,
-            y=[speaker_data[emotion].mean() for emotion in emotions],
-            name=speaker
-        ))
-    
-    fig.update_layout(
-        barmode='group',
-        title='Analisi Emozionale per Parlante',
-        xaxis_title='Emozioni',
-        yaxis_title='Media dei punteggi',
-        legend_title='Parlante'
-    )
-    
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
-        pio.write_image(fig, tmpfile.name)
-        return tmpfile.name
+emolex = load_emolex('utils/Italian-NRC-EmoLex.txt')
 
 def process_video(audio_file): 
     with open(audio_file, 'rb') as f:
@@ -57,8 +33,8 @@ def process_video(audio_file):
     for segment in subtitles:
         speaker, text = segment[1], segment[2]
 
-        emotion_scores = analizza_emozioni(text, emolex)
         sentiment_label, sentiment_score = analyze_sentiment(text)
+        emotion_scores = analyze_emotions_average(text, emolex)
         
         sentiment_results.append({
             'Turno': f"Turno {len(sentiment_results) + 1}",
@@ -72,25 +48,11 @@ def process_video(audio_file):
             'Turno': f"Turno {len(emotion_results) + 1}",
             'Parlante': speaker,
             'Frase': text,
-            'Anticipazione': emotion_scores['Anticipation'],
-            'Rabbia': emotion_scores['Anger'],
-            'Paura': emotion_scores['Fear'],
-            'Gioia': emotion_scores['Joy'],
-            'Tristezza': emotion_scores['Sadness'],
-            'Sorpresa': emotion_scores['Surprise'],
-            'Disgusto': emotion_scores['Disgust'],
-            'Fiducia': emotion_scores['Trust'],
-            'Negativo': emotion_scores['Negative'],
-            'Positivo': emotion_scores['Positive']
+            **emotion_scores 
         })
 
     df = pd.DataFrame(sentiment_results)
     emotion_df = pd.DataFrame(emotion_results)
-
-    if not emotion_df.empty:
-        emotion_chart_path = create_emotion_chart(emotion_df)
-    else:
-        emotion_chart_path = None
 
     transcript_text = "\n\n".join([f"{row['Parlante']}: {row['Frase']}" for index, row in df.iterrows()])
 
@@ -120,6 +82,17 @@ def process_video(audio_file):
     with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
         pio.write_image(fig, tmpfile.name)
         plot_path = tmpfile.name
+    
+    emotion_columns = [col for col in emotion_df.columns if col not in ['Turno', 'Parlante', 'Frase']]
+    emotion_df[emotion_columns].plot(kind='bar')
+    plt.title('Media delle emozioni per ciascun turno')
+    plt.xlabel('Turni')
+    plt.ylabel('Intensità delle emozioni')
+    plt.xticks(range(len(emotion_df)), emotion_df['Turno'], rotation=45)
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
+        plt.tight_layout()
+        plt.savefig(tmpfile, format='png') 
+        plot_path_2 = tmpfile.name 
 
     sentiment_totals = []
     for speaker in df['Parlante'].unique():
@@ -138,9 +111,7 @@ def process_video(audio_file):
         'sentiment_results': df.to_dict(orient='records')
     })
     
-    return transcript_text, df, emotion_df, pd.DataFrame(sentiment_totals), plot_path, emotion_chart_path
-
-
+    return transcript_text, df, emotion_df, pd.DataFrame(sentiment_totals), plot_path, plot_path_2
 
 #funzione gradio
 def create_gradio_interface():
@@ -157,17 +128,21 @@ def create_gradio_interface():
                 clear_button = gr.Button("Cancella", elem_id="clear-btn")
             with gr.Column(scale=3):
                 submit_button = gr.Button("Invia", elem_id="submit-btn")
+            with gr.Column(scale=3):
+                pass
+            with gr.Column(scale=3):
+                pass
         
         table_output = gr.Dataframe(label="Tabella analisi sentimentale per turni", datatype=['str', 'str', 'str', 'number'])
         table_emotion = gr.Dataframe(label="Tabella analisi emozionale per turni", datatype=['str', 'str', 'str', 'number', 'number', 'number', 'number', 'number', 'number', 'number'])
         total_sentiment_output = gr.Dataframe(label="Tabella analisi sentimentale per parlante")
         plot_output = gr.Image(label="Grafico analisi sentimentale")
-        emotion_plot_output = gr.Image(label="Grafico analisi emozionale")
+        plot_output_2 = gr.Image(label="Grafico analisi emozionale")
 
-        submit_button.click(process_video, inputs=[video_input], outputs=[transcript_output, table_output, table_emotion, total_sentiment_output, plot_output, emotion_plot_output])        
+        submit_button.click(process_video, inputs=[video_input], outputs=[transcript_output, table_output, table_emotion, total_sentiment_output, plot_output, plot_output_2])        
         
         def clear_outputs():
             return None, "", None, None, None, None, None
-        clear_button.click(clear_outputs, inputs=None, outputs=[video_input, transcript_output, table_output, table_emotion, total_sentiment_output, plot_output, emotion_plot_output])
+        clear_button.click(clear_outputs, inputs=None, outputs=[video_input, transcript_output, table_output, table_emotion, total_sentiment_output, plot_output, plot_output_2])
 
     return iface

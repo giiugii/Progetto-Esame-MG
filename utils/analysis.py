@@ -1,5 +1,6 @@
 #importazione
 from transformers import pipeline, AutoModelForSequenceClassification, AutoTokenizer
+import stanza
 
 #caricamento del modello e del tokenizer
 model_name="nlptown/bert-base-multilingual-uncased-sentiment"
@@ -23,56 +24,38 @@ def analyze_sentiment(text):
 
     return sentiment_label, sentiment_score
 
-import stanza
-import pandas as pd
-
-# Carica il dizionario EmoLex
-def load_emolex(file_path):
-    emolex_df = pd.read_csv(file_path, sep="\t", header=None)
-    emolex_df.columns = ['Word', 'Parlante', 'Anticipation', 'Anger', 'Fear', 'Joy', 'Sadness', 'Surprise', 'Disgust', 'Trust', 'Negative', 'Positive']
-    emolex = {}
-    for index, row in emolex_df.iterrows():
-        word = row['Word']  # Togliamo maiuscole per fare il match
-        emotions = row[1:].values  # Prendiamo le emozioni associate
-        emolex[word] = emotions  # Mappiamo parola -> emozioni
-    return emolex
-
-# Funzione di lemmatizzazione con Stanza (se non lo hai già integrato)
+#funzione per avere i lemmi delle parole del testo
 def lemmatize_text(text):
     nlp = stanza.Pipeline('it', processors='tokenize,lemma')
     doc = nlp(text)
     lemmi = [word.lemma for sentence in doc.sentences for word in sentence.words]
     return lemmi
 
-# Funzione per analizzare le emozioni in un testo
-def analizza_emozioni(text, emolex):
+#funzione per fare l'analisi delle emozioni con EmoLex
+def load_emolex (file_path):
+    with open(file_path) as file:
+        lines= file.readlines()
+    header = lines[0].strip().split("\t")[1:-1] 
+    emolex = {}
+    for line in lines[1:]: 
+        values= line.strip().split("\t")
+        word= values[-1]
+        emotion_scores= values[1:-1]
+        emotion_scores = [float(score) for score in emotion_scores]
+        emolex[word] = dict(zip(header, emotion_scores))
+    return emolex
+
+def analyze_emotions_average(text, emolex):
     lemmi = lemmatize_text(text)
-    emotion_scores = {
-        'Anticipation': 0,
-        'Anger': 0,
-        'Fear': 0,
-        'Joy': 0,
-        'Sadness': 0,
-        'Surprise': 0,
-        'Disgust': 0,
-        'Trust': 0,
-        'Negative': 0,
-        'Positive': 0
-    }
-    
+    emotion_scores = {emotion: 0 for emotion in emolex[list(emolex.keys())[0]].keys()} 
     for lemma in lemmi:
-        lemma = lemma.lower()  # Convertiamo la parola in minuscolo per fare il match
+        lemma=lemma.lower() 
         if lemma in emolex:
-            emotions = emolex[lemma]  # Prendi il punteggio delle emozioni
-            emotion_scores['Anticipation'] += float (emotions[0])
-            emotion_scores['Anger'] += float (emotions[1])
-            emotion_scores['Fear'] += float (emotions[2])
-            emotion_scores['Joy'] += float (emotions[3])
-            emotion_scores['Sadness'] += float (emotions[4])
-            emotion_scores['Surprise'] += float (emotions[5])
-            emotion_scores['Disgust'] += float (emotions[6])
-            emotion_scores['Trust'] += float (emotions[7])
-            emotion_scores['Negative'] += float (emotions[8])
-            emotion_scores['Positive'] += float (emotions[9])
-    
+            emotions = emolex[lemma]
+            for emotion, score in emotions.items():
+                emotion_scores[emotion] += score
+    num_words = len(lemmi) 
+    if num_words > 0:
+        for emotion in emotion_scores:
+            emotion_scores[emotion] /= num_words 
     return emotion_scores
