@@ -31,7 +31,7 @@ def process_video(audio_file):
     emotion_results = []
     
     for segment in subtitles:
-        speaker, text = segment[1], segment[2]
+        turno, speaker, text = segment[0], segment[1], segment[2]
 
         sentiment_label, sentiment_score = analyze_sentiment(text)
         emotion_scores = analyze_emotions_average(text, emolex)
@@ -62,7 +62,7 @@ def process_video(audio_file):
         'Negativo': -1
     }
     df['sentimento_numerico'] = df['Sentimento'].map(sentiment_mapping)
-
+    
     fig = px.scatter(df, 
                      x='Turno', 
                      y='sentimento_numerico', 
@@ -85,12 +85,14 @@ def process_video(audio_file):
     
     emotion_columns = [col for col in emotion_df.columns if col not in ['Turno', 'Parlante', 'Frase']]
     emotion_df[emotion_columns].plot(kind='bar')
-    plt.title('Media delle emozioni per ciascun turno')
-    plt.xlabel('Turni')
+    plt.title('Media delle emozioni per turni')
+    plt.xlabel('Turno')
     plt.ylabel('Intensità delle emozioni')
     plt.xticks(range(len(emotion_df)), emotion_df['Turno'], rotation=45)
+    plt.tight_layout()
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.subplots_adjust(right=0.7)  
     with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
-        plt.tight_layout()
         plt.savefig(tmpfile, format='png') 
         plot_path_2 = tmpfile.name 
 
@@ -134,7 +136,7 @@ def create_gradio_interface():
                 pass
         
         table_output = gr.Dataframe(label="Tabella analisi sentimentale per turni", datatype=['str', 'str', 'str', 'number'])
-        table_emotion = gr.Dataframe(label="Tabella analisi emozionale per turni", datatype=['str', 'str', 'str', 'number', 'number', 'number', 'number', 'number', 'number', 'number'])
+        table_emotion = gr.Dataframe(label="Tabella media delle emozioni per turni", datatype=['str', 'str', 'str', 'number', 'number', 'number', 'number', 'number', 'number', 'number'])
         total_sentiment_output = gr.Dataframe(label="Tabella analisi sentimentale per parlante")
         plot_output = gr.Image(label="Grafico analisi sentimentale")
         plot_output_2 = gr.Image(label="Grafico analisi emozionale")

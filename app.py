@@ -72,6 +72,3 @@ if __name__ == '__main__':
     flask_thread.start()
     run_gradio()
     flask_thread.join()
-
-
-

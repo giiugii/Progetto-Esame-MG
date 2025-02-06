@@ -74,5 +74,3 @@ def diarize_and_transcribe_audio(audio_file):
     except Exception as e:
         print(f"Errore nella diarizzazione o trascrizione: {e}")
         return "Errore nella diarizzazione o trascrizione"
-
-#use_auth_token="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"
