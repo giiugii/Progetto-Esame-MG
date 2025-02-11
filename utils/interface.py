@@ -31,7 +31,7 @@ def process_video(audio_file):
     emotion_results = []
     
     for segment in subtitles:
-        turno, speaker, text = segment[0], segment[1], segment[2]
+        speaker, text = segment[1], segment[2]
 
         sentiment_label, sentiment_score = analyze_sentiment(text)
         emotion_scores = analyze_emotions_average(text, emolex)
